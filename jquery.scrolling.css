@@ -1,0 +1,51 @@
+/*****************************************
+ * Create by Diowind - 2012/09/12
+ * Version.2.3.0
+ */
+ 
+ul#btn_nav {
+	list-style: none outside none;
+}
+
+ul#btn_nav li {
+	background-color: white;
+	float: left;
+	height: 20px;
+	line-height: 20px;
+	margin-right: 3px;
+	text-align: center;
+	width: 20px;
+}
+
+ul#btn_nav li a {
+	color: #FF6600;
+	display: block;
+	font: 600 12px/20px arial;
+	height: 20px;
+	opacity: 0.5;
+	width: 20px;
+	text-decoration: none;
+	outline: medium none;
+}
+
+ul#btn_nav li a.select { opacity: 1; }
+
+
+a.btn_box-prev,
+a.btn_box-next {
+	width: 50px;
+	height: 45px;
+	display: block;
+	position: absolute;
+	font-size: 0px;
+}
+
+a.btn_box-prev {
+	background-image: url('./img/prev.png') ;
+	left: 0px;
+}
+
+a.btn_box-next {
+	background-image: url('./img/next.png') ;
+	left: 0px;
+}
