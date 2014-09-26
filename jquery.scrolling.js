@@ -547,7 +547,7 @@
  *
  *	version Log
  *	Version.2.3.1---
- *	修正 [導航按鈕] 模式時，移動完刪除項目的 bug。
+ *	修正 parseInt() 函式，指定轉換為十進位。
  *	
  *	Version.2.3.0---
  *	新增 [onReady] 初始化完成後的自訂 Function
