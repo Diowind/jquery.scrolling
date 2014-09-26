@@ -1,7 +1,7 @@
 ﻿//<![CDATA[
 /*****************************************
  * Create by Diowind - 2012/05/14
- * Version.2.3.0
+ * Version.2.3.1
  * 
  * HTML sample:
 	<!-- 方向按鈕 / 基本形式 -->
@@ -377,10 +377,10 @@
 						child = ':last-child';
 					}
 					//-- 刪除項目
-					while(move > 0) {
-						$( items + child ).remove();
-						move--;
-					}
+					// while(move > 0) {
+					// 	$( items + child ).remove();
+					// 	move--;
+					// }
 					$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
 				}, _opts.scrollingTimes);
 			});
@@ -536,6 +536,7 @@
 
 
 /*****************************************
+ * Modify by Diowind - 2014/09/26 - ver.2.3.1
  * Modify by Diowind - 2014/07/08 - ver.2.3.0
  * Modify by Diowind - 2013/11/19 - ver.2.2.1
  * Modify by Diowind - 2012/09/12 - ver.2.2.0
@@ -545,6 +546,9 @@
  * Modify by Diowind - 2012/05/15 - ver.2.0.1
  *
  *	version Log
+ *	Version.2.3.1---
+ *	修正 [導航按鈕] 模式時，移動完刪除項目的 bug。
+ *	
  *	Version.2.3.0---
  *	新增 [onReady] 初始化完成後的自訂 Function
  *	新增 [btn_icon] 圖片 / 文字模式的方向鍵
