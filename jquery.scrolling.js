@@ -1,7 +1,7 @@
 ﻿//<![CDATA[
 /*****************************************
  * Create by Diowind - 2012/05/14
- * Version.2.3.1
+ * Version.2.4.1
  * 
  * HTML sample:
 	<!-- 方向按鈕 / 基本形式 -->
@@ -28,7 +28,7 @@
 		</div>
 	</div>
 	
-	<!-- 導航按鈕形式 -->
+	<!-- 導航按鈕形式 - item 必須加上  id="item_*" nava="*" 兩個 attributes ( * = 1~n ) -->
 	<div id="scrollPanel" style="position: relative; overflow: hidden; height: 300px;">
 		<div id="scrollZone" style="position: relative;">
 			<div class="item" style="height: 20px; width: 100px;" id="item_1" nava="1">
@@ -85,6 +85,8 @@
  *****************************************/
 
 ;(function($) {
+	var _opts;	//-- 各項屬性 ( 全域 )
+	
 	$.fn.scrolling = function(opts) {
 		var defOpts = {
 			//scrollPanel: 'scrollPanel',	// 顯示區塊 ID
@@ -98,15 +100,19 @@
 			itemCls: 'item',				//-- 各項目的 class 名稱
 			itemH: 0,						//-- 各項目的 高
 			itemW: 0,						//-- 各項目的 寬
+			itemLen: 0,					//-- 項目總數
 			scrollTimer: null,				//-- 計時器
 			DIRECT: 'down',				//-- 捲動方向 ex: down、up、right、left、static(按鈕切換)、dual-down/up/right/left(自動+按鈕切換)
 			times: 4000,					//-- 捲動間隔 ms
 			scrollingTimes: 700,			//-- 捲動特效執行時間 ms
-			eff: 'fade',						//-- 轉換效果: none、fade、slideUp (需搭配DIRECT: 'up')
+			eff: 'none',						//-- 轉換效果: none、fade、slideUp (需搭配DIRECT: 'up')  default: none
 			isHoverOn: true,				//-- 滑鼠hover時暫停捲動
 			isScrolling: false,			//-- 手動按鈕時防連點
 			isSingel: true,				//-- 左右捲動時是否為單一顯示項目
+			isSerial: true,					//-- 頭尾是否連續 default= TRUE	( 設定為 FALSE 時要搭配 DIRECT: 'static' )
+			//-- 以上為預設項目 ---------------------------------------------------------------------------------------------------------------------//
 			
+			//-- 以下為可選項目 ---------------------------------------------------------------------------------------------------------------------//
 			hasBtnNav: false,			//-- 導航按鈕 [1] [2] [3] ...
 			btn_nav: 'btn_nav',			//-- 導航按鈕區塊 ID
 			nav_loc: 'BTR',				//-- 導航按鈕區塊 位置: BTR(右下)、BTL(左下)、UPR(右上)、UPL(左上)
@@ -130,7 +136,7 @@
 			onReady: function(){}	//-- 初始化完成後要進行的自訂 Function
 		};
 
-		var _opts = $.extend( defOpts, opts );	//-- 各項屬性覆寫
+		_opts = $.extend( defOpts, opts );	//-- 各項屬性覆寫
 		
 		var _handler = function() {
 			var id = '#' + this.id;	//-- 顯示區塊 ID 加上 '#'
@@ -158,14 +164,14 @@
 			
 			switch( _opts.DIRECT  ) {
 				default:
-					init( this, _opts );
-					runAnimate( _opts );
+					init( this );
+					runAutoScroll();
 					break;
 				
 				case 'static':
-					init( this, _opts );
+					init( this );
 					//-- 掛上事件
-					$( _opts.btn_box ).find('a').each(function(){ $(this).bind( _opts.bind, function(){ manualScroll( $(this).attr('clk_direct'), id, _opts ); } ); });
+					$( _opts.btn_box ).find('a').each(function(){ $(this).bind( _opts.bind, function(){ manualScroll( $(this).attr('clk_direct'), id ); } ); });
 					break;
 				
 				case 'dual-down':
@@ -174,10 +180,10 @@
 				case 'dual-right':
 					_opts.DIRECT = _opts.DIRECT.replace(/dual-/g, '');
 					
-					init( this, _opts );
-					runAnimate( _opts );
+					init( this );
+					runAutoScroll();
 					//-- 掛上事件
-					$( _opts.btn_box ).find('a').each(function(){ $(this).bind( _opts.bind, function(){ manualScroll( $(this).attr('clk_direct'), id, _opts ); } ); });
+					$( _opts.btn_box ).find('a').each(function(){ $(this).bind( _opts.bind, function(){ manualScroll( $(this).attr('clk_direct'), id ); } ); });
 					break;
 			}
 		};
@@ -186,11 +192,13 @@
 	};
 	
 	//-- 捲動 - auto
-	function runAnimate( _opts ) {
+	function runAutoScroll() {
 		var height = _opts.height;
 		var width = _opts.width;
 		var cloneTar = ':last-child';
-		var addLoc = 'prependTo';
+		// var addLoc = 'prependTo';
+		var addLoc = 'prepend';
+		var currNav = parseInt( $('#currNav').val(), 10 );
 		
 		switch( _opts.DIRECT ) {
 			default:
@@ -198,41 +206,48 @@
 				height = width = 0;
 				_opts.tmpPos = {'top':( 0 - _opts.itemH ), 'left':0};
 				_opts.tmpZone = {'width':_opts.itemW, 'height':(_opts.zoneH + _opts.itemH)};
+				
+				currNav = ( (currNav-1) >= 1 ) ? (currNav - 1) : _opts.itemLen;
 				break;
 			case 'left':
 				width = 0 - _opts.width;
 				height = 0;
 				cloneTar = ':first-child';
-				addLoc = 'appendTo';
+				// addLoc = 'appendTo';
+				addLoc = 'append';
+				
+				currNav = ( (currNav + 1) <= _opts.itemLen ) ? (currNav + 1) : 1;
 				break;
 			
 			case 'right':
 				height = width = 0;
 				_opts.tmpPos = {'top':0, 'left':( 0 - _opts.itemW )};
 				_opts.tmpZone = {'width':(_opts.zoneW + _opts.itemW), 'height':_opts.itemH};
+				
+				currNav = ( (currNav-1) >= 1 ) ? (currNav - 1) : _opts.itemLen;
 				break;
 			case 'up':
 				width = 0;
 				height = 0 - _opts.height;
 				cloneTar = ':first-child';
-				addLoc = 'appendTo';
+				// addLoc = 'appendTo';
+				addLoc = 'append';
+				
+				currNav = ( (currNav + 1) <= _opts.itemLen ) ? (currNav + 1) : 1;
 				break;
 		}
 		
 		//-- 滑鼠 hover 時停止捲動
-		if( _opts.isHoverOn ) { scrollPause( _opts ); }
+		if( _opts.isHoverOn ) { scrollPause(); }
 		
 		if ( _opts.scrollTimer == null ) {
-			_opts.scrollTimer = setTimeout( function(){runAnimate( _opts );}, 1000 );
+			_opts.scrollTimer = setTimeout( function(){runAutoScroll();}, 1000 );
 			return false;
 		}
 		
 		var _lastItem = _opts.scrollZone + ' ' + _opts.itemCls + cloneTar;
 		var isFade = '.show()';
-		/*if( _opts.eff == 'fade' ) {
-			$( _lastItem ).fadeOut( _opts.scrollingTimes );	// 將 被複製的對象 fadeOut
-			isFade = ".fadeIn(" + _opts.scrollingTimes + ")";
-		}*/
+		
 		//-- 轉場特效
 		switch( _opts.eff ) {
 			default:
@@ -250,31 +265,22 @@
 				break;
 		}
 		
-		eval("$( _lastItem ).clone(true, true).hide()." + addLoc + "( _opts.scrollZone )" + isFade);
+		// eval("$( _lastItem ).clone(true, true).hide()." + addLoc + "( _opts.scrollZone )" + isFade);
+		
+		var itemClone = $( _lastItem ).clone(true, true);
+		eval("$( _opts.scrollZone )." + addLoc + "( $( itemClone ).hide($( itemClone )" + isFade + ") )");
+		
 		if( _opts.DIRECT == 'down' || _opts.DIRECT == 'right' ) {
 			$( _opts.scrollZone ).css( _opts.tmpPos ).css( _opts.tmpZone );
 		}
 		
-		/** 移動 **/
-		$( _opts.scrollZone ).animate({
-			top: height + 'px',
-			left: width + 'px'
-		}, (_opts.scrollingTimes-20), function(){
-			$( _lastItem ).remove();
-			$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
-			
-			//-- 導航按鈕模式, 改變按鈕CSS
-			if( _opts.hasBtnNav ) {
-				var tar = $( _opts.scrollZone + ' ' + _opts.itemCls + ':first-child' ).attr('nava');
-				btnNavSelect(tar, _opts);
-			}
-			if ( _opts.scrollTimer != undefined ) { clearTimeout( _opts.scrollTimer ); }
-			_opts.scrollTimer = setTimeout( function(){runAnimate( _opts );}, _opts.times );
-		});
-	}	//-- end of runAnimate()
+		// alert( test );
+		var oData = {'_lastItem': _lastItem, 'tar': currNav};
+		runAnimate( height, width, 'A', oData, 20 );
+	}	//-- end of runAutoScroll()
 	
 	//-- 按鈕切換
-	function manualScroll( goNext, id, _opts ) {
+	function manualScroll( goNext, id ) {
 		//-- 防連點
 		if ( _opts.isScrolling != false ) { 
 			return false;
@@ -284,17 +290,22 @@
 			var height = ( _opts.pageDirect == 'vertical' ) ? (0 - _opts.height) : 0;
 			var width = ( _opts.pageDirect == 'vertical' ) ? 0 : (0 - _opts.width);
 			var cloneTar = ':last-child';
-			// var addLoc = 'prependTo';
+			var currNav = parseInt( $('#currNav').val(), 10 );
 			
 			switch( goNext ) {
 				default:
 				case 'next':
 					cloneTar = ':first-child';
-					// addLoc = 'appendTo';
+					//-- 加 1 後大於項目總數時，判斷是否頭尾連續； True: 跳回 1 , False: 維持最末項
+					currNav = ( (currNav + 1) <= _opts.itemLen ) ? (currNav + 1) : ( (_opts.isSerial) ? 1 : _opts.itemLen );
+					
 					break;
 					
 				case 'prev':
 					height = width = 0;
+					//-- 減 1 後小於 1 時，判斷是否頭尾連續； True: 跳回最末項 , False: 維持 1
+					currNav = ( (currNav - 1) >= 1 ) ? (currNav - 1) : ( (_opts.isSerial) ? _opts.itemLen : 1 );
+					
 					break;
 			}
 			
@@ -307,30 +318,28 @@
 				$( _opts.scrollZone ).append( $( _lastItem ).clone(true, true) ).css( _opts.tmpZone );
 			}
 			
-			/** 移動 **/
-			$( _opts.scrollZone ).animate({
-				top: height + 'px',
-				left: width + 'px'
-			}, _opts.scrollingTimes, function(){
-				$( _lastItem ).remove();
-				$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
-				
-				setTimeout(function(){ _opts.isScrolling = false; }, _opts.scrollingTimes);
-			});
+			//-- 頭尾不相連時
+			if( !_opts.isSerial ) {
+				chkIsSerial( currNav );
+			}
+			
+			var oData = {'_lastItem': _lastItem, 'tar': currNav};
+			
+			runAnimate( height, width, 'M', oData );
 		}
 	} //-- end of manualScroll()
 	
 	//-- 導航按鈕切換	tar: 目標序號
-	function navClick( tarObj, _opts ) {
+	function navClick( tarObj ) {
 		//-- 防連點
 		if ( _opts.isScrolling != false ) { 
 			return false;
 		}
 		else {
 			_opts.isScrolling = true;
-			var tar = parseInt( tarObj.innerHTML );
+			var tar = parseInt( tarObj.innerHTML, 10 );
 			var goDirect = 'sub';
-			var currNav = parseInt( $('#currNav').val() );
+			var currNav = parseInt( $('#currNav').val(), 10 );
 			var move = Math.abs( currNav - tar );	//-- 位移距離
 			
 			var items = _opts.scrollZone + ' ' + _opts.itemCls;
@@ -364,47 +373,128 @@
 			var height = ( _opts.pageDirect == 'vertical' ) ?  ( goDirect == 'add' ) ? 0 : (0 - _opts.height * move) : 0;
 			var width = ( _opts.pageDirect == 'vertical' ) ? 0 : ( goDirect == 'add' ) ? 0 : (0 - _opts.width * move);
 			
-			/** 移動 **/
-			$( _opts.scrollZone ).animate({
-				top: height + 'px',
-				left: width + 'px'
-			}, _opts.scrollingTimes, function(){
-				
-				setTimeout(function(){ 
-					_opts.isScrolling = false;
-					var child = ':first-child';
-					if( goDirect == 'add' ) {
-						child = ':last-child';
-					}
-					//-- 刪除項目
-					// while(move > 0) {
-					// 	$( items + child ).remove();
-					// 	move--;
-					// }
-					$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
-				}, _opts.scrollingTimes);
-			});
+			//-- 頭尾不相連時
+			if( !_opts.isSerial ) {
+				chkIsSerial( tar );
+			}
 			
-			btnNavSelect(tar, _opts);
+			var oData = {'items': items, 'goDirect': goDirect, 'move': move, 'tar': tar};
+			runAnimate( height, width, 'N', oData );
 		}
+	}
+	
+	/** 執行移動
+	 *	height	= 垂直位移距離
+	 *	width		= 水平位移距離
+	 *	mode		= 'A' || 'M' || 'N'
+	 *	oData	= 其他各模式需要的參數, 物件格式 {'key': 'value'}
+	 *	timeFix	= scrolling 時間修正
+	 */
+	function runAnimate( height, width, mode, oData, timeFix ) {
+		mode = mode || 'A';
+		timeFix = timeFix || 0;
+		
+		$( _opts.scrollZone ).animate({
+			top: height + 'px',
+			left: width + 'px'
+		}, ( _opts.scrollingTimes - timeFix ), function(){
+			
+			switch( mode ) {
+				default:
+				case 'A':
+					$( oData['_lastItem'] ).remove();
+					$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
+					
+					if ( _opts.scrollTimer != undefined ) { clearTimeout( _opts.scrollTimer ); }
+					_opts.scrollTimer = setTimeout( function(){runAutoScroll();}, _opts.times );
+					break;
+				
+				case 'M':
+					$( oData['_lastItem'] ).remove();
+					$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
+					
+					setTimeout(function(){ _opts.isScrolling = false; }, _opts.scrollingTimes);
+					break;
+				
+				case 'N':
+					var move = oData['move'];
+					setTimeout(function(){ 
+						_opts.isScrolling = false;
+						var child = ':first-child';
+						if( oData['goDirect'] == 'add' ) {
+							child = ':last-child';
+						}
+						//-- 刪除項目
+						while(move > 0) {
+							$( oData['items'] + child ).remove();
+							move--;
+						}
+						$( _opts.scrollZone ).css({'top': 0, 'left': 0}).css( _opts.oriZone );
+					}, _opts.scrollingTimes);
+					break;
+			}
+			
+			//-- 導航按鈕模式, 改變按鈕CSS
+			// if( _opts.hasBtnNav ) {
+				// var tar = $( _opts.scrollZone + ' ' + _opts.itemCls + ':first-child' ).attr('nava');
+				// btnNavSelect(tar, _opts);
+				btnNavSelect( oData['tar'] );
+			// }
+			
+			
+			
+		});
+		
+	}
+	
+	//-- 檢查是否頭尾相連
+	function chkIsSerial( curr, max ) {
+		max = max || _opts.itemLen;
+		
+		if( curr == max ) {
+			$( _opts.btn_box ).find('.btn_box-prev').show();
+			$( _opts.btn_box ).find('.btn_box-next').hide();
+		}
+		else if( curr == 1 ) {
+			$( _opts.btn_box ).find('.btn_box-prev').hide();
+			$( _opts.btn_box ).find('.btn_box-next').show();
+		}
+		else {
+			$( _opts.btn_box ).find('.btn_box-next').show();
+			$( _opts.btn_box ).find('.btn_box-prev').show();
+		}
+	}
+	
+	//-- 轉場效果
+	function transfer_effect( target, eff ) {
+		
 	}
 	
 	/***********************************************************************************************/
 	//-- 初始化
-	function init( currObj, _opts ) {
+	function init( currObj ) {
 		_opts.zoneW = _opts.panelW;		//-- 卷軸總寬 -- 左右捲動時設定為總物件寬
 		_opts.zoneH = _opts.panelH;		//-- 卷軸總高 -- 上下捲動時設定為總物件高
+		_opts.itemLen = parseInt( $( currObj ).find( _opts.itemCls ).length, 10 );	//-- 項目總數
+		
+		//-- 項目數量只有 1 時，不輪播、隱藏箭頭、隱藏導航按鈕
+		if( _opts.itemLen <= 1 ) {
+			$( _opts.btn_box ).hide();
+			$( _opts.btn_nav ).hide();
+			return false;
+		}
+		
 		if( _opts.DIRECT == '' ) { _opts.DIRECT = 'down'; }
 		if( _opts.pageDirect == '' ) { _opts.pageDirect = 'horizontal'; }
 		if( _opts.DIRECT == 'right' || _opts.DIRECT == 'left' || ( _opts.DIRECT == 'static' && _opts.pageDirect == 'horizontal' ) ) {
 			_opts.width = ( _opts.width > 0 ) ? _opts.width : _opts.itemW;
 			_opts.height = 0;
-			_opts.zoneW = _opts.itemW * $(currObj).find( _opts.itemCls ).length;
+			_opts.zoneW = _opts.itemW * _opts.itemLen;
 		}
 		else if( _opts.DIRECT == 'up' || _opts.DIRECT == 'down' || ( _opts.DIRECT == 'static' && _opts.pageDirect == 'vertical' ) ) {
 			_opts.width = 0;
 			_opts.height = ( _opts.height > 0 ) ? _opts.height : _opts.itemH;
-			_opts.zoneH = _opts.itemH * $(currObj).find( _opts.itemCls ).length;
+			_opts.zoneH = _opts.itemH * _opts.itemLen;
 		}
 		
 		//-- 卷軸原始長寬
@@ -446,12 +536,12 @@
 				//-- 加上 click 事件 - 分為 IE or FF系列
 				if( ns ) {
 					aLink.addEventListener("click", function(event) {
-						navClick( this, _opts );
+						navClick( this );
 					});
 				}
 				else if( ie ) {
 					aLink.attachEvent("onclick", function(event) {
-						navClick( this, _opts );
+						navClick( this );
 					});
 				}
 				
@@ -505,29 +595,34 @@
 				$( _opts.btn_box ).css({'height': _opts.btn_h});
 		}
 		
+		//-- 設定 頭尾不相連 時，[上一項] 的箭頭隱藏
+		if( !_opts.isSerial ) {
+			$( _opts.btn_box ).find('.btn_box-prev').hide();
+		}
+		
 		_opts.onReady();
 	}
 	
 	//-- 滑鼠 hover 時暫停捲動
-	function scrollPause( _opts ) {
+	function scrollPause() {
 		$( _opts.scrollZone + ' ' + _opts.itemCls + ', ' + _opts.btn_box + ' a, ' + _opts.btn_nav + ' a' ).hover(
 			function(){ clearTimeout( _opts.scrollTimer ); }, 
 			function(){
 				if ( _opts.scrollTimer != undefined || _opts.scrollTimer != null ) { clearTimeout( _opts.scrollTimer ); }
-				_opts.scrollTimer = setTimeout( function(){runAnimate( _opts );}, _opts.times );
+				_opts.scrollTimer = setTimeout( function(){runAutoScroll( _opts );}, _opts.times );
 		});
 	}
 	
 	//-- 導航按鈕樣式切換
-	function btnNavSelect(tar, _opts) {
+	function btnNavSelect( tar ) {
 		$('#currNav').prop('value', tar);
 		$( _opts.btn_nav ).find('a').removeClass('select');
 		$('#navA_'+tar).addClass('select');
 	}
 	
 	//-- 判斷 IE系列 or FF系列 瀏覽器
-	var ns = ((navigator.appName == 'Netscape') && (parseInt(navigator.appVersion) >= 5));
-	var ie = ((parseInt(navigator.appVersion) >= 4) && (navigator.appName.indexOf('msie') != -1));
+	var ns = ((navigator.appName == 'Netscape') && (parseInt(navigator.appVersion, 10) >= 5));
+	var ie = ((parseInt(navigator.appVersion, 10) >= 4) && (navigator.appName.indexOf('msie') != -1));
 	
 })(jQuery);
 
@@ -535,60 +630,5 @@
 
 
 
-/*****************************************
- * Modify by Diowind - 2014/09/26 - ver.2.3.1
- * Modify by Diowind - 2014/07/08 - ver.2.3.0
- * Modify by Diowind - 2013/11/19 - ver.2.2.1
- * Modify by Diowind - 2012/09/12 - ver.2.2.0
- * Modify by Diowind - 2012/09/10 - ver.2.1.4
- * Modify by Diowind - 2012/06/04 - ver.2.1.3
- * Modify by Diowind - 2012/05/16 - ver.2.1.2
- * Modify by Diowind - 2012/05/15 - ver.2.0.1
- *
- *	version Log
- *	Version.2.3.1---
- *	修正 parseInt() 函式，指定轉換為十進位。
- *	
- *	Version.2.3.0---
- *	新增 [onReady] 初始化完成後的自訂 Function
- *	新增 [btn_icon] 圖片 / 文字模式的方向鍵
- *	新增 [btn_box_cls] 方向鍵區塊的 class
- *	新增 方向鍵在圖片模式時的位置設定在上下置中，以及圖片兩側。
- *	修正 複製元素時連同事件一起複製。  .clone() > .clone(true, true) 
- *	修正 註解
- *	
- *	Version.2.2.1---
- *	修正 .attr('屬性', '值') > .prop('屬性', '值')
- *	
- *	Version.2.2.0---
- *	新增 [導航按鈕] 模式
- *	新增 IE、NS系列瀏覽器判斷
- *	新增 [slideUp] 轉場特效 (需搭配向上捲動)
- *
- *	Version.2.1.4---
- *	新增 左右捲動時，顯示項目數量為單一或多數而改變項目寬度
- *	
- *	Version.2.1.3---
- *	新增 [按鈕區塊] 上右下左位置設定
- *	
- *	Version.2.1.2---
- *	修正 [按鈕切換] 模式時的防止快速連點 bug
- *	修正 function init() 捲動方向和移動方向的 預設值指定
- *	
- *	Version.2.1.1---
- *	新增 [自動 + 按鈕切換] 模式
- *	修正 [自動] 模式下的滑動
- *	更改檔名為 jquery.scrolling
- *	
- *	Version.2.0.1---
- *	新增 [按鈕切換] 模式
- *
- *	Version.2.0.0---
- *	更改檔名為 scrolling_200
- *	修改為 jQuery plugin 格式
- *
- *	--------------------------------------------------
- *	Version.1.1.2---
- *	新增項目	itemH、itemW 可獨立指定項目的寬高
-*****************************************/
+
 //]]>
