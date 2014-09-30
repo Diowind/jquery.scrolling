@@ -49,3 +49,19 @@ a.btn_box-next {
 	background-image: url('./img/next.png') ;
 	left: 0px;
 }
+
+
+p.scrolling-caption {
+	bottom: 0;
+	display: block;
+	margin: 0;
+	position: absolute;
+	background: url("./img/scrolling_caption_alpha.png") repeat scroll 0 0 rgba(0, 0, 0, 0) !important;
+	width: 100%;
+	padding: 2% 5%;
+}
+p.scrolling-caption a {
+	float: right;
+	color: #000;
+}
+
